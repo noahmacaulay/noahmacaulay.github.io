@@ -1,17 +1,23 @@
-<!DOCTYPE html>
-<html>
-<title> @_@ </title>
-<body>
-<h1> First Page </h1>
-<p>This is the first page. Here is a link to the <a href = "secondpage.html"> second page.</a></p>
+---
+layout: default
+---
 
-<button type="button"
-onclick="document.getElementById('demo').innerHTML = Date()">
-Date and Time.</button>
+<div class="home">
 
-<p id = "demo"></p>
+  <h1 class="page-heading">Posts</h1>
 
-</body>
-</html>
+  <ul class="post-list">
+    {% for post in site.posts %}
+      <li>
+        <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
 
+        <h2>
+          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+        </h2>
+      </li>
+    {% endfor %}
+  </ul>
 
+  <p class="rss-subscribe">subscribe <a href="{{ "/feed.xml" | prepend: site.baseurl }}">via RSS</a></p>
+
+</div>
