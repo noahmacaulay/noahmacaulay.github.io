@@ -1,0 +1,701 @@
+<html>
+<head>
+
+<title>Basic Concepts of Decoherence</title>
+
+<script src = "math.js" type = "text/javascript"></script>
+
+<!-- mathjax, which does latex in browser(hopefully...?)-->
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+});
+</script>
+
+
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+<script>
+
+function normalize(vec){
+    //'vec' vector of complex numbers
+    total_norm_sq = math.dot(vec, math.conj(vec));
+    
+    total_norm = math.sqrt(total_norm_sq);
+    
+    return math.divide(vec, total_norm);
+}
+
+epsilon = 0.01;
+
+function time_evolve(state, hamiltonian, time_interval){
+    //state is a (normalized) vector of complex numbers
+    //hamiltonian is hermitian matrix
+    //approximate Schrodinger equation h i d/dt |psi> = H |psi>
+    //and set h-bar = 1
+    
+    debugger;
+    
+    for(i = 0; i < time_interval; i++){
+        d_state = math.multiply(math.complex(0,1), math.multiply(hamiltonian, state));
+        
+        state = math.add (  math.multiply( d_state, epsilon), state);
+        
+        state = normalize(state);
+    }
+    return state;
+}
+
+
+function draw_state(state, contexts, canvases,n){
+
+    
+    for(i = 0; i < n; i++){
+        
+        contexts[i].clearRect(0,0, canvases[i].width, canvases[i].height);
+        
+        r = canvases[i].width/2;
+        
+        contexts[i].beginPath();
+        contexts[i].moveTo(r,r);
+        contexts[i].lineTo(r + r * state.subset(math.index(i)).re, r + r * state.subset(math.index(i)).im);
+        contexts[i].stroke();
+        contexts[i].closePath();
+    }
+}
+
+
+//Creates a 'system', which is some quantum state plus:
+//--canvases and contexts for drawing
+//--a measurement hamiltonian
+//--a time-evolution hamiltonian
+//these can be zero. 
+function System(n, alternate_basis = false, environment = false){
+    
+    this.n = n;
+    this.alternate_basis = alternate_basis;
+    this.state = math.zeros(n);
+    this.alternate_state = math.zeros(n);
+    
+    this.starting_state = this.state; //problem, will have to re-do this for each!
+    
+    
+    this.M = math.zeros(n,n);
+    this.measurement_button;
+    
+    this.H = math.zeros(n,n);
+    this.basis_change = math.zeros(n,n);
+    this.E = math.zeros(n,n);
+    
+    this.measurement_ops = [this.M];
+    this.num_measurements = 1;
+    this.current_measurement = 0;
+    
+    this.canvases = [];
+    this.contexts = [];
+    
+    for(i = 0; i < n; i++){
+        var canvas = document.createElement("canvas");
+        
+        canvas.width = 140;
+        canvas.height = 140;
+        canvas.style.border = "1px solid";
+        var context = canvas.getContext("2d");
+        this.canvases.push(canvas);
+        this.contexts.push(context);
+    }
+    
+    if(this.alternate_basis == true){
+        this.alternate_canvases = [];
+        this.alternate_contexts = [];
+    
+    
+        for(i = 0; i < n; i++){
+            var canvas = document.createElement("canvas");
+            
+            canvas.width = 140;
+            canvas.height = 140;
+            canvas.style.border = "1px solid";
+            var context = canvas.getContext("2d");
+            this.alternate_canvases.push(canvas);
+            this.alternate_contexts.push(context);
+        }
+    }
+    
+    
+    this.rotation;
+    this.measurement;
+    this.environment;
+    
+    this.measuring = false;
+    this.rotating = false;
+    this.env_monitor = false;
+    
+    var self = this;
+    
+    this.rot_func = function(){
+        self.state = time_evolve(self.state,self.H,1);
+        draw_state(self.state, self.contexts, self.canvases, self.n);
+        
+        if(self.alternate_basis == true){
+            debugger;
+            self.alternate_state = math.multiply(self.basis_change, self.state);
+            draw_state(self.alternate_state, self.alternate_contexts, self.alternate_canvases, self.n);
+        }
+    }
+    
+    this.start_rotation = function(){
+    
+        if (this.rotating == false){
+            this.rotating = true;
+            this.rotation = setInterval(this.rot_func, 1);
+        }
+        else{
+            clearInterval(this.rotation);
+            this.rotating = false;
+        }
+    
+    }
+    
+    
+    
+    this.env_func = function(){
+        self.state = time_evolve(self.state,self.E,1);
+        draw_state(self.state, self.contexts, self.canvases, self.n);
+        
+        if(self.alternate_basis == true){
+            debugger;
+            self.alternate_state = math.multiply(self.basis_change, self.state);
+            draw_state(self.alternate_state, self.alternate_contexts, self.alternate_canvases, self.n);
+        }
+    }
+    
+    this.start_environment = function(){
+    
+        if (this.env_monitor == false){
+            this.env_monitor = true;
+            this.environment = setInterval(this.env_func, 1);
+        }
+        else{
+            clearInterval(this.environment);
+            this.env_monitor = false;
+        }
+    
+    }
+
+    
+    
+    
+    this.meas_func = function(){
+      //stop the measurement when close to zero.
+      self.state = time_evolve(self.state, self.M, 1);
+      draw_state(self.state, self.contexts, self.canvases, self.n);
+      
+      if(self.alternate_basis == true){
+        self.alternate_state = math.multiply(self.basis_change, self.state);
+        draw_state(self.alternate_state, self.alternate_contexts, self.alternate_canvases, self.n);
+      }
+      
+      v = self.state.subset(math.index(1));
+      v_length = math.multiply(v, math.conj(v)).re;
+      if(v_length < 0.00001){
+        clearInterval(self.measurement);
+        self.measuring = false;
+        self.current_measurement += 1;
+        if(self.current_measurement < self.num_measurements){
+            self.M = self.measurement_ops[self.current_measurement];
+        }
+        else{
+            self.measurement_button.disabled = true;
+        }
+      }
+    }
+                                             
+    
+    
+    this.start_measurement = function(){
+    
+        if (this.current_measurement == this.num_measurements){
+            return;
+        }
+            
+        if(this.env_monitor == true){
+            clearInterval(this.environment);
+            this.env_monitor = false;
+        }
+        if(this.rotating == true){
+            clearInterval(this.rotation);
+            this.rotating = false;
+        }
+            
+        if (this.measuring == false){
+            this.measuring = true;
+            this.measurement = setInterval(this.meas_func,1);
+        }
+        
+        else{
+            clearInterval(this.measurement);
+            this.measuring = false;
+        }
+    }
+    
+    this.reset = function(){
+    
+        if(this.env_monitor == true){
+            clearInterval(this.environment);
+            this.env_monitor = false;
+        }
+        if(this.rotating == true){
+            clearInterval(this.rotation);
+            this.rotating = false;
+        }
+        if(this.measuring == true){
+            clearInterval(this.measurement);
+            this.measuring = false;
+        }
+        
+        this.M = this.measurement_ops[0];
+        this.current_measurement = 0;
+        this.state = this.starting_state;
+        draw_state(this.state, this.contexts, this.canvases, this.n);
+        if(this.alternate_basis == true){
+            this.alternate_state = math.multiply(this.basis_change, this.state);
+            draw_state(this.alternate_state, this.alternate_contexts, this.alternate_canvases, this.n);
+        }
+        this.measurement_button.disabled = false;
+        
+    }
+    
+    
+}
+
+
+//Creates table to put system canvases in
+//All of our examples work in this way
+function create_table(canvases, col_captions, row_captions, n){
+    
+    var tbl1 = document.createElement('table');
+
+    var tabl1_body = document.createElement('tbody');
+
+    var tr_header_1 = document.createElement('tr');
+    var tdh_1_1 = document.createElement('td');
+    tdh_1_1.appendChild(document.createTextNode(" "));
+    var tdh_1_2 = document.createElement('td');
+    tdh_1_2.appendChild(document.createTextNode(col_captions[0]));
+    var tdh_1_3 = document.createElement('td');
+    tdh_1_3.appendChild(document.createTextNode(col_captions[1]));
+
+    tr_header_1.appendChild(tdh_1_1);
+    tr_header_1.appendChild(tdh_1_2);
+    tr_header_1.appendChild(tdh_1_3);
+
+    tabl1_body.appendChild(tr_header_1);
+
+    for(i = 0; i < n/2; i++){
+        
+        //tr == table row
+        var tr = document.createElement('tr');
+        
+        var td1 = document.createElement('td');
+        td1.appendChild(document.createTextNode(row_captions[i]));
+        
+        var td2 = document.createElement('td');
+        td2.appendChild(canvases[2 * i]);
+        
+        var td3 = document.createElement('td');
+        td3.appendChild(canvases[2 * i + 1]);
+        
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tr.appendChild(td3);
+        
+        tabl1_body.appendChild(tr);
+    } 
+    tbl1.appendChild(tabl1_body);
+    return tbl1;
+            
+    
+}
+
+
+</script>
+
+</head>
+<body>
+
+<p> In traditional quantum mechanics, there are two basic processes: unitary evolution and measurements. Unitary evolution governed by the Schrodinger equation is interrupted by measurements, which stochastically return a given value and collapse the state of the system onto an associated subspace. The picture below illustrates the result of a measurement in the position basis.</p>
+<img src = "evolution.png"></img>
+<p> This webpage will explain, using simple examples, how many features of the process of measurement can be explained as a consequence of some types of unitary evolution. </p>
+<p> Single  measurement </p>
+<p> How can we try to explain measurement as a consequence of unitary evolution? Well, when we make a measurement, we typically use some apparatus to do so. In the process, the state of the apparatus becomes correlated with that of the system. For instance, if we have an apparatus that measures the position of a particle and displays some coordinates on a screen, the state of the screen is now correlated with that of the system.</p>
+<p> We can represent this in the formalism of quantum mechanics. Assume our system starts off in a state $|\psi \rangle$ and our apparatus in a 'ready' state $|A_0 \rangle$ If the system begins in a "definite state" $|i \rangle$ of the measurement then the evolution should keep it in that state, while altering the state of the apparatus to establish correlations:</p>
+$$U_{meas} |A_0 \rangle |i \rangle = |A_i \rangle |i \rangle $$
+<p> By linearity, the general form of the measurement should be:</p>
+$$ U_{meas} |A_0 \rangle \otimes |\psi \rangle = U_{meas} |A_0 \rangle \otimes \sum_i a_i |i \rangle = \sum_i a_i |A_i \rangle \otimes |i \rangle$$
+<p>Now let us make one more assumption about the measurement process. Assume the final states of the apparatus are completely distinguishable. This is a reasonable assumption -- the measuring devices we use have highly distinguishable final states.(e.g. different numbers on a computer display) This implies that $ |A_i \rangle$ and $|A_j \rangle$ are orthogonal for $i \neq j$.</p>
+<p>These assumptions explain the appearance of 'collapse' to one of the eigenstates of the measurement. How? Well, consider a local measurement, that is a measurement performed on only the system(or only the apparatus). The statistics for any such measurement are encoded in the partial density matrix </p>
+$$\rho_S = Tr_A { \sum_{ij} a_i a_j^* |A_i \rangle |i \rangle  \langle j| \langle A_j| } =  \sum_i |a_i|^{2} |i\rangle \langle i|$$
+<p>Therefore, any local measurements will have statistics indistinguishable from a probabilistic mixture of the $|i \rangle$s. In other words, the system will appear as though it is now in state $|i \rangle$ with probability $|a_i|^2$, which is precisely the "collapse of the wavefunction". </p>
+<p>In realistic environments, entanglement will very quickly spread from the system to the apparatus and beyond into the rest of the universe. So any measurements performable by realistic observers(such as humans) will be effectively local -- and therefore, will give the appearance of collapse.</p>
+
+<p>Let's examine a concrete example. In the simplest case, the system and apparatus will both consist of 2-state systems.(a.k.a. qubits). An interaction of the desired form is the CNOT </p>
+$$U_{CNOT} |00 \rangle = |00 \rangle$$
+$$U_{CNOT} |01 \rangle = |11 \rangle$$
+
+<p>Below is an animation of this situation. Each box contains an arrow representing the amplitude associated to a particular basis vector of the joint system. For instance, the top-left box displays the amplitude of $|00\rangle$, and the top-right box displays the amplitude of $|01\rangle$.  "Rotation" will time-evolve the system using the Hamiltonian 
+$$H_s = \left( \begin{matrix} \frac{1}{2}&1 \\ 1&\frac{1}{2} \end{matrix} \right) $$
+while "Measurement" will perform a CNOT measurement. Double click a button to pause evolution.</p>
+
+
+<button type = "button" id="rotation" onclick = "sys1.start_rotation()">Rotation</button>
+<br>
+<button type = "button" id="measure1" disabled = "false" onclick = "sys1.start_measurement()">Measurement</button>
+<br>
+<button type = "button" id="reset" onclick = "sys1.reset()">Reset</button>
+<br>
+
+
+<script>
+
+var body = document.getElementsByTagName("body")[0];
+
+var sys1 = new System(4);
+
+sys1.measurement_button = document.getElementById("measure1");
+sys1.measurement_button.disabled = false;
+
+tbl1 = create_table(sys1.canvases, ["0","1"], ["0","1"], sys1.n);
+
+body.appendChild(tbl1);
+
+br = document.createElement("br");
+body.appendChild(br);
+
+sys1.state.subset(math.index(0),math.complex(1,1)); 
+
+sys1.state = normalize(sys1.state);
+
+sys1.starting_state = sys1.state;
+
+sys1.M.subset(math.index(1,3), math.complex(0,1));
+sys1.M.subset(math.index(3,1), math.complex(0,-1));
+
+sys1.H.subset(math.index(0,0),math.complex(0.5,0));
+sys1.H.subset(math.index(1,1),math.complex(0.5,0));
+sys1.H.subset(math.index(1,0), math.complex(1,0));
+sys1.H.subset(math.index(0,1), math.complex(1,0));
+
+sys1.H.subset(math.index(2,2),math.complex(0.5,0));
+sys1.H.subset(math.index(3,3),math.complex(0.5,0));
+sys1.H.subset(math.index(2,3), math.complex(1,0));
+sys1.H.subset(math.index(3,2), math.complex(1,0));
+
+draw_state(sys1.state, sys1.contexts, sys1.canvases, sys1.n);
+
+</script>
+
+
+
+<p> Repeated measurements. </p>
+<p> How can we explain repeated measurements using the formalism considered above?</p>
+<image src = "evolution2.png"></img>
+<p>We imagine a sequence of measurement apparatuses $|A^1\rangle$, $|A^2\rangle$ , ..., $|A^n\rangle$ During a measurement, an apparatus $|A_i\rangle$ becomes entangled with the system, time evolution continues, and another measurement, this time with apparatus $|A_{i+1}\rangle$ is made. The reader might object that typically a single apparatus is re-used. In this case, we can imagine the 'apparatus' states as being states of some record of the measurement outcomes. Then the joint state $|A^1 A^2 ... A^n \rangle$ contain records of a series of measurement outcomes, rather than of the instantaneous state of the system. </p>
+<p>After a 'collapse', the collapsed system will continue evolving in the manner it had before the measurement. This is a consequence of the orthogonality(or near-orthogonality) of the corresponding states of the apparatuses, combined with the fact that the evolution of the system is typically governed by a unitarity that is local(or mostly local), i.e. it is approximately of the form</p>
+$$U_{total} = U_{system} \otimes I$$.
+<p>This implies that it will take </p>
+$$ U_{total} ( \sum_i a_i |i\rangle \otimes |A_i\rangle ) = \sum_i a_i (U_{system} |i\rangle) \otimes |A_i\rangle$$
+<p> so each 'collapsed' component of the sum will evolve independently of the others, and the density matrix will remain in diagonal form.</p>
+<p>Below is an example allowing iterated evolution and measurement of the system. The system Hamiltonian is the same as in the last example, and the two measurement operators are CNOTs on bits 1 and 2, respectively.</p>
+<button type = "button" id="rotation" onclick = "sys2.start_rotation()">Rotation</button>
+<br>
+<button type = "button" id="measure2" onclick = "sys2.start_measurement()">Measurement</button>
+<br>
+<button type = "button" id="reset" onclick = "sys2.reset()">Reset</button>
+<br>
+
+<script>
+
+var sys2 = new System(8);
+
+sys2.measurement_button = document.getElementById("measure2");
+sys2.measurement_button.disabled = false;
+
+tbl2 = create_table(sys2.canvases, ["0","1"], ["00","01","10","11"], sys2.n);
+
+body.appendChild(tbl2);
+
+sys2.state.subset(math.index(0),math.complex(1,1)); 
+
+sys2.state = normalize(sys2.state);
+
+sys2.starting_state = sys2.state;
+
+sys2.M.subset(math.index(1,5), math.complex(0,1));
+sys2.M.subset(math.index(5,1), math.complex(0,-1));
+
+sys2_M2 = math.zeros(8,8);
+
+sys2_M2.subset(math.index(1,3), math.complex(0,1));
+sys2_M2.subset(math.index(3,1), math.complex(0,-1));
+
+sys2_M2.subset(math.index(5,7), math.complex(0,1));
+sys2_M2.subset(math.index(7,5), math.complex(0,-1));
+
+sys2.measurement_ops.push(sys2_M2);
+sys2.num_measurements += 1;
+
+sys2.H.subset(math.index(0,0),math.complex(0.5,0));
+sys2.H.subset(math.index(1,1),math.complex(0.5,0));
+sys2.H.subset(math.index(1,0), math.complex(1,0));
+sys2.H.subset(math.index(0,1), math.complex(1,0));
+
+sys2.H.subset(math.index(2,2),math.complex(0.5,0));
+sys2.H.subset(math.index(3,3),math.complex(0.5,0));
+sys2.H.subset(math.index(2,3), math.complex(1,0));
+sys2.H.subset(math.index(3,2), math.complex(1,0));
+
+sys2.H.subset(math.index(4,4),math.complex(0.5,0));
+sys2.H.subset(math.index(5,5),math.complex(0.5,0));
+sys2.H.subset(math.index(4,5), math.complex(1,0));
+sys2.H.subset(math.index(5,4), math.complex(1,0));
+
+sys2.H.subset(math.index(6,6),math.complex(0.5,0));
+sys2.H.subset(math.index(7,7),math.complex(0.5,0));
+sys2.H.subset(math.index(6,7), math.complex(1,0));
+sys2.H.subset(math.index(7,6), math.complex(1,0));
+
+draw_state(sys2.state, sys2.contexts, sys2.canvases, sys2.n);
+
+</script>
+
+<br>
+<br>
+
+<p>Preferred Basis Problem</p>
+<p>In traditional quantum mechanics, a measurement is defined by a Hermitian operator -- or equivalently, a basis of the system to be measured. We would like to understand measurement as a special case of unitary evolution. So, given a system and apparatus undergoing some unitary evolution, how can we determine what basis was measured?</p>
+<p> This is not a completely trivial question. For instance, consider the CNOT example above, with starting state $A_0 = |0\rangle$ and $|\psi\rangle = \frac{1}{\sqrt2} (|0\rangle + |1\rangle)$. The final state is $\frac{1}{\sqrt{2}}( |00\rangle + |11\rangle )$.</p>
+<p>This is in the "completed measurement" form. But consider the alternate basis 
+$$|+> = \frac{1}{\sqrt{2}} (|0\rangle + |1\rangle)$$
+$$|-> = \frac{1}{\sqrt{2}} (|0\rangle - |1\rangle)$$
+It can easily be verified that $\frac{1}{\sqrt{2}}( |00\rangle + |11\rangle ) = \frac{1}{\sqrt{2}}( |++\rangle + |--\rangle )$. So what has been measured -- the basis $|0\rangle / |1\rangle$ or $|+\rangle / |-\rangle$?</p>
+
+<p>Below is an animation of this situation.</p>
+
+<button type = "button" id = "measure3" onclick = "sys3.start_measurement()">Measurement</button>
+<br>
+
+<button type = "button" id = "reset" onclick = "sys3.reset()">Reset</button>
+<br>
+
+<script>
+
+debugger;
+
+var sys3 = new System(4, alternate_basis = true);
+
+sys3.measurement_button = document.getElementById("measure3");
+sys3.measurement_button.disabled = false;
+
+tbl3_1 = create_table(sys3.canvases, ["0","1"],["0","1"],sys3.n);
+tbl3_2 = create_table(sys3.alternate_canvases, ["+","-"],["+","-"],sys3.n);
+
+tbl3_1.style = "float: left;";
+body.appendChild(tbl3_1);
+body.appendChild(tbl3_2);
+
+sys3.M.subset(math.index(1,3), math.complex(0,1));
+sys3.M.subset(math.index(3,1), math.complex(0,-1));
+
+sys3.H.subset(math.index(0,0),math.complex(0.5,0));
+sys3.H.subset(math.index(1,1),math.complex(0.5,0));
+sys3.H.subset(math.index(1,0), math.complex(1,0));
+sys3.H.subset(math.index(0,1), math.complex(1,0));
+
+sys3.H.subset(math.index(2,2),math.complex(0.5,0));
+sys3.H.subset(math.index(3,3),math.complex(0.5,0));
+sys3.H.subset(math.index(2,3), math.complex(1,0));
+sys3.H.subset(math.index(3,2), math.complex(1,0));
+
+
+sys3.state.subset(math.index(0),math.complex(1,0));
+sys3.state.subset(math.index(1),math.complex(1,0));
+
+sys3.state = normalize(sys3.state);
+sys3.starting_state = sys3.state;
+
+//really could use tensor product here ;p
+sys3.basis_change.subset(math.index(0,0),math.complex(1,0));
+sys3.basis_change.subset(math.index(0,1),math.complex(1,0));
+sys3.basis_change.subset(math.index(1,0),math.complex(1,0));
+sys3.basis_change.subset(math.index(1,1),math.complex(-1,0));
+
+sys3.basis_change.subset(math.index(2,2),math.complex(-1,0));
+sys3.basis_change.subset(math.index(2,3),math.complex(-1,0));
+sys3.basis_change.subset(math.index(3,2),math.complex(-1,0));
+sys3.basis_change.subset(math.index(3,3),math.complex(1,0));
+
+sys3.basis_change.subset(math.index(0,2),math.complex(1,0));
+sys3.basis_change.subset(math.index(0,3),math.complex(1,0));
+sys3.basis_change.subset(math.index(1,2),math.complex(1,0));
+sys3.basis_change.subset(math.index(1,3),math.complex(-1,0));
+
+sys3.basis_change.subset(math.index(2,0),math.complex(1,0));
+sys3.basis_change.subset(math.index(2,1),math.complex(1,0));
+sys3.basis_change.subset(math.index(3,0),math.complex(1,0));
+sys3.basis_change.subset(math.index(3,1),math.complex(-1,0));
+
+sys3.basis_change = math.divide(sys3.basis_change, 2);
+
+sys3.alernate_state = math.multiply(sys3.basis_change, sys3.state);
+
+draw_state(sys3.state, sys3.contexts, sys3.canvases, sys3.n);
+draw_state(sys3.alernate_state, sys3.alternate_contexts, sys3.alternate_canvases, sys3.n);
+
+
+
+</script>
+
+
+<p> The Pointer Basis</p>
+<p> The solution to this problem can be found when one considers that the apparatus used for measuring is rarely an isolated system, but is in contact with a surrounding 'environment' which interacts with it. For instance, typical measuring devices in labs are surrounded by a bath of air and light which continually interact with the apparatus.</p>
+<p>The environment will induce evolution of the apparatus states according to an interaction Hamiltonian $H_{AE}$. Let's assume for simplicity that there is no effect on the system caused by this Hamiltonian, and that the environment and apparatus remain unentangled. The apparatus states will evolve according to the unitarity</p> 
+$$U_{AE} = exp \{ -i H_{AE} t \}$$
+<p>Let's consider the effect of this unitarity on the measurement basis states. In general, we can write</p>
+ $$U_{AE} |A_i \rangle = \sum_j c_j |A_j\rangle$$ 
+$$U_{AE} |i\rangle |A_i\rangle =  |i\rangle \otimes \sum_j c_j |A_j\rangle$$
+<p>Therefore, unless $c_j = 0$ for all $j \neq i$, the correlation between apparatus states and system states will be destroyed. This will also result in the "collapsed" basis states of the system no longer evolving independently.</p>
+<p>For $c_j = 0$ for all $j \neq i$, we require that the apparatus basis states be eigenvectors of the unitarity for all times $t$ -- equivalently, they must be eigenvectors of $H_{AE}$. So the form of $H_{AE}$ picks out a unique basis of $A$ which can robustly store records, and therefore(via the measurement interaction) a preferred basis into which the system collapses. </p>
+<p>In the example below, we model the environment as a third qubit, and the environment-apparatus interaction as 
+$$H_{AE} = ( |0\rangle \langle 0| - |1\rangle \langle 1| ) \otimes ( |0\rangle \langle 0| - |1 \rangle  \langle 1| ) $$. </p>
+<p>The eigenvectors of this Hamiltonian(in the apparatus basis) are $|0\rangle$ and $|1\rangle$. So only this basis will maintain correlations with the system after interaction with the environment. </p>
+
+<button type = "button" id="measure4" onclick = "sys4.start_measurement()">Measurement</button>
+<br>
+
+<button type = "button" id="environment" onclick = "sys4.start_environment()">Environment</button>
+<br>
+
+<button type = "button" id="reset" onclick = "sys4.reset()">Reset</button>
+<br>
+
+
+<script>
+
+sys4 = new System(n = 8, alternate_basis = true);
+sys4.measurement_button = document.getElementById('measure4');
+
+sys4.measurement_button.disabled = false;
+
+tbl4_1 = create_table(sys4.canvases, ["0","1"],["00","01","10","11"],sys4.n);
+tbl4_2 = create_table(sys4.alternate_canvases, ["+","-"],["0+","0-","1+","1-"],sys4.n);
+
+tbl4_1.style = "float: left;";
+body.appendChild(tbl4_1);
+body.appendChild(tbl4_2);
+
+// 000 ---> 0
+// 001 ---> 1
+// 010 ---> 2
+//etc.
+
+//CNOT on bits 1,2 (hmm, is this right >:( ? ) 
+// 001 ----> 101
+// 011 ----> 111
+
+sys4.M.subset(math.index(1,3), math.complex(0,1));
+sys4.M.subset(math.index(3,1), math.complex(0,-1));
+sys4.M.subset(math.index(5,7), math.complex(0,1));
+sys4.M.subset(math.index(7,5), math.complex(0,-1));
+
+//E of the form  I X (|0><0| - |1><1|) X (|0><0| - |1><1|)
+sys4.E.subset(math.index(0,0),math.complex(1,0));
+sys4.E.subset(math.index(1,1),math.complex(1,0));
+sys4.E.subset(math.index(2,2),math.complex(-1,0));
+sys4.E.subset(math.index(3,3),math.complex(-1,0));
+
+sys4.E.subset(math.index(4,4),math.complex(-1,0));
+sys4.E.subset(math.index(5,5),math.complex(-1,0));
+sys4.E.subset(math.index(6,6),math.complex(1,0));
+sys4.E.subset(math.index(7,7),math.complex(1,0));
+
+//Basis change(probably should use for loops for this. Too lazy)
+
+sys4.basis_change.subset(math.index(0,0),math.complex(1,0));
+sys4.basis_change.subset(math.index(0,1),math.complex(1,0));
+sys4.basis_change.subset(math.index(1,0),math.complex(1,0));
+sys4.basis_change.subset(math.index(1,1),math.complex(-1,0));
+
+sys4.basis_change.subset(math.index(2,2),math.complex(-1,0));
+sys4.basis_change.subset(math.index(2,3),math.complex(-1,0));
+sys4.basis_change.subset(math.index(3,2),math.complex(-1,0));
+sys4.basis_change.subset(math.index(3,3),math.complex(1,0));
+
+sys4.basis_change.subset(math.index(0,2),math.complex(1,0));
+sys4.basis_change.subset(math.index(0,3),math.complex(1,0));
+sys4.basis_change.subset(math.index(1,2),math.complex(1,0));
+sys4.basis_change.subset(math.index(1,3),math.complex(-1,0));
+
+sys4.basis_change.subset(math.index(2,0),math.complex(1,0));
+sys4.basis_change.subset(math.index(2,1),math.complex(1,0));
+sys4.basis_change.subset(math.index(3,0),math.complex(1,0));
+sys4.basis_change.subset(math.index(3,1),math.complex(-1,0));
+
+sys4.basis_change.subset(math.index(4,4),math.complex(1,0));
+sys4.basis_change.subset(math.index(4,5),math.complex(1,0));
+sys4.basis_change.subset(math.index(5,4),math.complex(1,0));
+sys4.basis_change.subset(math.index(5,5),math.complex(-1,0));
+
+sys4.basis_change.subset(math.index(6,6),math.complex(-1,0));
+sys4.basis_change.subset(math.index(6,7),math.complex(-1,0));
+sys4.basis_change.subset(math.index(7,6),math.complex(-1,0));
+sys4.basis_change.subset(math.index(7,7),math.complex(1,0));
+
+sys4.basis_change.subset(math.index(4,6),math.complex(1,0));
+sys4.basis_change.subset(math.index(4,7),math.complex(1,0));
+sys4.basis_change.subset(math.index(5,6),math.complex(1,0));
+sys4.basis_change.subset(math.index(5,7),math.complex(-1,0));
+
+sys4.basis_change.subset(math.index(6,4),math.complex(1,0));
+sys4.basis_change.subset(math.index(6,5),math.complex(1,0));
+sys4.basis_change.subset(math.index(7,4),math.complex(1,0));
+sys4.basis_change.subset(math.index(7,5),math.complex(-1,0));
+
+sys4.basis_change = math.divide(sys4.basis_change, 2);
+
+sys4.state.subset(math.index(0),math.complex(1,0));
+sys4.state.subset(math.index(1),math.complex(1,0));
+sys4.state.subset(math.index(4),math.complex(1,0));
+sys4.state.subset(math.index(5),math.complex(1,0));
+
+sys4.state = normalize(sys4.state);
+sys4.starting_state = sys4.state;
+
+
+sys4.alernate_state = math.multiply(sys4.basis_change, sys4.state);
+
+draw_state(sys4.state, sys4.contexts, sys4.canvases, sys4.n);
+draw_state(sys4.alernate_state, sys4.alternate_contexts, sys4.alternate_canvases, sys4.n);
+
+
+</script>
+
+
+<p> Conclusion </p>
+
+<p>We have seen that many features of the process of measurement -- correlation with a measurement apparatus, apparent 'collapse' of the state, and the selection of the basis of measurement -- can be explained as a consequence of particular types of unitary evolution.</p>
+
+<p>The reader should be aware that the discussion above simplified the situation greatly. Usually, real-life systems only approximately match the situations presented. For instance, the off-diagonal terms in the system's density matrix will generally approach but not be equal to zero. Lastly, the above remarks do not provide a solution to the full problem of how measurement works.There is still no consensus on exactly how (or if) the classical world emerges from quantum mechanics, or how measurements in particular can be explained. Nevertheless, the ideas of decoherence are a significant step towards such an understanding. (Oh, also don't trust the evolution of the example systems beyond a certain point. Numerical inaccuracies compound after running for a while)</p> 
+
+<p>Further Reading</p>
+<p>This page has irrigorouly surveyed only the most basic concepts of decoherence. To learn much more, try the book "Decoherence and the Quantum-to-Classical Transition" by Maximillian Schlosshauer.</p>
+
+</body>
+
+</script>
+
+</html>
