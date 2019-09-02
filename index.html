@@ -7,24 +7,47 @@ Noah's Website
 
 <style>
 body {
-	background-color:linen;
+	background-color:#13f;
+	font-family: "Tahoma";
+	font-size:12pt;
 }
 h1 {
-	color: maroon;
 	margin-left: 40px;
+}
+h2{
+	margin-left: 30px;
 }
 .imgWidth{
 	width:600px;
 }
-.project{
+.project-outer{
  border-style:solid;
- margin-right:100px; 
- margin-left:100px; 
- margin-top: 25px;
- margin-bottom:25px;
+ margin: 0 auto;
+ margin-top:30px;
+ margin-bottom:30px;
+ text-align: left;
+ width: 660px;
+ background-color: #fff;
+}
+.project{
+ margin: 0 auto;
+ text-align: left;
+ width: 600px;
  padding-right:30px; 
  padding-left:30px;
- background-color: #eabf95
+ background-color: #fff;
+}
+
+.smaller{
+
+ border-style:solid;
+ margin: 0 auto;
+ margin-top:30px;
+ margin-bottom:30px;
+ text-align: centre;
+ width:400px;
+ background-color:#fff;
+
 }
 </style>
 
@@ -32,40 +55,57 @@ h1 {
 
 <body>
 
-
+<div class = "project-outer">
 <h1>Noah MacAulay</h1>
-<img src = "headshot.jpg" alt="Looking out from Cape Spear" style="width:280px;">
-<p>Hello, I'm Noah. This is my website. </p>
-<h1>Projects</h1>
-
+<img src = "capespear-shorter.jpg" alt="Looking out from Cape Spear" style="width:100%;">
 <div class = "project">
+<p>  Hello, I'm Noah. This is my website featuring various projects that I've worked on. </p>
+</div>
+</div>
+
+<div class = "project-outer">
 <h2>Generalization Bounds for Neural Networks</h2>
-<img src = "weight-hist.PNG" alt = "Weight histograms for neural network under a sparsity-inducing prior" style = "width:650px">
-<p>Neural networks have proven extraordinarily succesful at a wide range of tasks. While progress has been great, our theoretical understanding of <i>why</i> neural networks work has lagged behind. One thing we still don't understand well is the generalization properties of neural networks, meaning how well a network will perform on new samples after being trained. If we assume that samples are independently sampled from a fixed distribution, this question becomes mathematically tractable, and it's possible to obtain gneralization bounds, that is, proofs that a learning algorithm will continue to perform well on new data. Recently, some authors have used PAC-Bayes theory to obtain generalization bounds that (a) apply to neural networks trained on real-world problems such as MNIST and (b) are <i>non-vacuous</i>, meaning that they certify the neural network is performing better than random guessing. Obtaining both of these properties at once has proven surprisingly difficult. In my <a href = "msc-thesis.pdf">master's thesis</a>, I continued this line of work, using a new varitional prior to obtain generalization bounds competitive with prior work. Later, in an independent research project, I devised another variational prior based on random projections, obtaining the tighest generalization bounds yet known for MNIST and CIFAR-10.</p>
+<img src = "weight-hist.PNG" alt = "Weight histograms for neural network under a sparsity-inducing prior" style = "width:100%;">
+<div class = "project">
+<p>Neural networks have proven extraordinarily succesful at a wide range of tasks. While progress has been great, our theoretical understanding of <i>why</i> neural networks work has lagged behind. One thing we still don't understand well is the generalization properties of neural networks, meaning how well a network will perform on new samples after being trained. If we assume that samples are independently sampled from a fixed distribution, this question becomes mathematically tractable, and it's possible to obtain gneralization bounds, that is, proofs that a learning algorithm will continue to perform well on new data.</p>
+<p>Recently, some authors have used PAC-Bayes theory to obtain generalization bounds that (a) apply to neural networks trained on real-world problems such as MNIST and (b) are <i>non-vacuous</i>, meaning that they certify the neural network is performing better than random guessing. Obtaining both of these properties at once has proven surprisingly difficult.</p> 
+<p>In my <a href = "msc-thesis.pdf">master's thesis</a>, I continued this line of work, using a new varitional prior to obtain generalization bounds competitive with prior work. Later, in an independent research project, I devised another variational prior based on random projections, obtaining the tighest generalization bounds yet known for MNIST and CIFAR-10.</p>
+</div>
 </div>
 
-<div class = "project">
+<div class = "project-outer">
 <h2>Quantum Branching</h2>
-<img src = "branching.png" alt = "Branch-finding algorithm applied to a one-dimensional quantum system" style = "width:600px">
-<p>The <a href = "https://en.wikipedia.org/wiki/Many-worlds_interpretation">many-worlds interpretation</a> of quantum mechanics states that what we percieve as random 'wavefunction collapse' is in fact the universe splitting into many different 'branches', in which different events come to pass. This idea has been around since the 60s, but there is still no first-principles definition of exactly what 'branches' are supposed to be. For this project, I worked with a group  of physicists from various institutions, with the goal of exploring a definition based on redundantly-stored information. As part of this project, I developed a novel algorithm for detecting information stored in at least three distinct sites in one-dimensional quantum systems called matrix product states. I also implemented TEBD, a popular algorithm for simulating the evolution of such systems, from scratch in Python. </p>
+<img src = "branches-full.png" alt = "Branch-finding algorithm applied to a one-dimensional quantum system" style = "width:100%">
+<div class = "project">
+<p>The <a href = "https://en.wikipedia.org/wiki/Many-worlds_interpretation">many-worlds interpretation</a> of quantum mechanics states that what we percieve as random wavefunction collapse is in fact the universe splitting into many different 'branches', in which different events come to pass. This idea has been around since the 60s, but there is still no first-principles definition of exactly what 'branches' are supposed to be. </p>
+<p>For this project, I worked with a group  of physicists from various institutions, with the goal of exploring a definition based on redundantly-stored information. As part of this project, I developed a novel algorithm for detecting information stored in at least three distinct sites in one-dimensional quantum systems called matrix product states. I also implemented TEBD, a popular algorithm for simulating the evolution of such systems, from scratch in Python. </p>
+</div>
 </div>
 
+<div class = "project-outer">
+<h2> "Can You Hear the Shape of a Drum?" </h2>
+<img src = "cayley-quotient.PNG" alt = "A step in the proof of isospectral plane domains" style = "width:100%">	
 <div class = "project">
-<h2> Isospectral Plane Domains. "Can You Hear the Shape of a Drum?" </h2>
-<img src = "crossing-diagram.PNG" alt = "A step in the proof of isospectral plane domains" style = "width:600px">	
-<p>Any drum head will have a set of resonant frequencies, the pure tones which the drum vibrates with when struck. These resonant frequencies depend in a delicate way on the shape of the drum head; conversely, from knowing the frequencies, it is possible to reconstruct some aspects of the shape, such as the area and circumference.  From the 1960s to the 1990s, it was an open question whether it was possible to uniquely reconstruct the entirety of the drum's shape from its resonant frequencies. It turns out the answer is <i>no</i>: there are pairs of drums with different shapes but the same set of resonant frequencies. My <a href = "honors-thesis.pdf">undergraduate honours' thesis</a> covered the recent proof of the existence of these <i>isospectral plane domains</i> -- a.k.a. drums with different shapes that sound the same. The proof and its background, which cover a wide swathe of mathematics from partial differential equations to finite fields, are explained at a level that could be understood by most undergraduates. </p>
+<p>Any drum head will have a set of resonant frequencies, the pure tones which the drum vibrates with when struck. These resonant frequencies depend in a delicate way on the shape of the drum head; conversely, from knowing the frequencies, it is possible to reconstruct some aspects of the shape, such as the area and circumference.  From the 1960s to the 1990s, it was an open question whether it was possible to uniquely reconstruct the entirety of the drum's shape from its resonant frequencies.</p>
+<p>It turns out the answer is <i>no</i>: there are pairs of drums with different shapes but the same set of resonant frequencies. My <a href = "honors-thesis.pdf">undergraduate honours' thesis</a> reviewed the recent proof of the existence of these <i>isospectral plane domains</i> -- a.k.a. drums with different shapes that sound the same. The proof and its background, which cover a wide swathe of mathematics from partial differential equations to finite fields, are explained at a level that could be understood by most undergraduates. </p>
+</div>
 </div>
 
-<div class = "project">
+<div class = "project-outer">
 <h2>Games</h2>
-<img src = "spacetime.PNG" alt = "Spacetime diagram" style = "width:600px;">
+<img src = "spacetime.PNG" alt = "Spacetime diagram" style = "width:100%;">
+<div class = "project">
 <p>I made some video games in high school and college using C++ and openFrameworks. They were mostly puzzle games with a philosophical bent.</p>
 <p>The most complete one was <a href = "ALIGN.zip">ALIGN</a>, a puzzle game involving placing circles on grids. 
-<p>The most philopshically interesting one was <a href = "SPACETIME.zip">SPACETIME</a>, a puzzle game about time travel. By allowing the player to edit the entire history of spacetime, it allowed for the implementation of time paradoxes usually not possible in time travel games. Devising satisfying puzzles turned out to be hard, but I still think the underlying idea was great. I intend to go back and make a superior version at some point.</p>
-<p>The most techincally elaborate one was VISION, another puzzle game about perspective vision in 2 dimensions. There was a 2d lightcasting engine featuring mirrors(with arbitrary depth of reflection!), vision, and multicoloured light sources. Tragically, midway through development my computer crashed and I lost everything, the only remnant being a <a href = "VISION.zip">buggy prototype</a> left on a USB stick. At this point I decided I could use a break from programming video games, and it was never completed.</p>
+<p>The most philosophically interesting one was <a href = "SPACETIME.zip">SPACETIME</a>, a puzzle game about time travel. By allowing the player to edit the entire history of spacetime, it allowed for the implementation of time paradoxes usually not possible in time travel games. Devising satisfying puzzles turned out to be hard, but I still think the underlying idea was great. I intend to go back and make a superior version at some point.</p>
+<p>The most technically elaborate one was VISION, another puzzle game about perspective vision in 2 dimensions. There was a 2d lightcasting engine featuring mirrors(with arbitrary depth of reflection!), vision, and multicoloured light sources. Tragically, midway through development my computer crashed and I lost everything, the only remnant being a <a href = "VISION.zip">buggy prototype</a> left on a USB stick. At this point I decided I could use a break from programming video games, and it was never completed.</p>
+</div>
 </div>
 
-<h1>Miscellanaeous</h1>
+<div class = "project-outer">
+<h2>Miscellanaeous</h2>
+<img src = "heisenberg-slice.PNG" alt = "Cayley graph of the Heisenberg group" style = "width:100%;">
+<div class = "project">
 <p>In 2014, I <a href = "http://adamcadre.ac/13lyttle.html">won(?)</a> the Lyttle Lytton contest for 'worst opening sentence of a fictitious novel'. </p>
 
 <p>I also have some <a href = "Writing/pretending.html">other</a> <a href = "Writing/ghost.html">humourous writing.</a> </p>
@@ -74,11 +114,18 @@ h1 {
 
 <p> I noticed a <a href = "Physics/counterexample.pdf">mathematical error</a> in the paper <a href = "https://arxiv.org/abs/1209.1179">Statistical Physics of Self-Replication</a>. It's not clear if this error majorly affects the conclusions of the paper however. </p>
 
-<a href = "H1.PNG">Some</a> <a href = "H2.PNG">pretty</a> <a href = "H3.PNG">pictures</a> of the Cayley graph of the <a href = https://en.wikipedia.org/wiki/Heisenberg_group#Discrete_Heisenberg_group>discrete Heiesnberg group.</a> I also <a href = "Heisenberg Dead Ends.pdf">proved</a> that this graph contains dead ends, but I forget why this was interesting.
+<p><a href = "H1.PNG">Some</a> <a href = "H2.PNG">pretty</a> <a href = "H3.PNG">pictures</a> of the Cayley graph of the <a href = https://en.wikipedia.org/wiki/Heisenberg_group#Discrete_Heisenberg_group>discrete Heiesnberg group.</a> I also <a href = "Heisenberg Dead Ends.pdf">proved</a> that this graph contains dead ends, but I forget why this was interesting.</p>
 
+<p>This website design was inspired by Adam Cadre's <a href = "http://adamcadre.ac">beautiful website.</a></p>
+</div>
+</div>
 
+<div class = "smaller">
 <center> <h2>Contact</h2> </center>
- <center>usernameneeded [at] gmail [dot] com. (Yes, you read that correctly)</center>
+ <center>usernameneeded [at] gmail [dot] com.</center>
+ <center>  (Yes, you read that correctly) </center>
+ <p>
+</div>
 
 </body>
 
