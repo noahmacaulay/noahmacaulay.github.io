@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Tree Factoring Bijection</h1>
+
+<canvas id="myCanvas" style="border:1px solid #000000;">
+Sorry, your browser does not support canvas.
+</canvas>
+
+<br>
+<button onclick ="generate_new_tree()">Generate New Tree</button>
+Vertices(odd only): <input id ="num_vertices"  value=11 size = 2>
+
+<br>
+<button onclick="apply_small_loop_involution()">Small Loop Involution</button>
+&nbsp;&nbsp;&nbsp;
+<button onclick="apply_big_loop_involution()">Big Loop Involution</button>
+
+<br>
+<button onclick="apply_crossing_involution()">Crossing Involution</button>
+
+<script>
+// Create a canvas
+const canvas = document.getElementById("myCanvas");
+const ctx = canvas.getContext("2d");
+
+function draw_filled_circle(x, y, radius){
+
+    ctx.beginPath();
+    ctx.moveTo(x+radius, y);
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.FillStyle = "black";
+    ctx.fill();
+
+}
+
+function draw_arrow(x0, y0, x1, y1, color1 = "black", color2 = null){
+
+    if (color2 == null){
+        color2 = color1;
+    }
+
+    ctx.lineWidth = 2;
+    var grad = ctx.createLinearGradient(x0, y0, (x0+x1)/2, (y0+y1)/2);
+    grad.addColorStop(0, color1);
+    grad.addColorStop(1, color2);
+    ctx.strokeStyle = grad;
+
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.strokeStyle = color2;
+
+    x_direction = x0 - x1;
+    y_direction = y0 - y1;
+    direction_norm = Math.sqrt(x_direction * x_direction + y_direction * y_direction);
+    x_direction /= direction_norm;
+    y_direction /= direction_norm;
+
+    //rotate direction by 30 degrees, up and down
+    //sqrt(3)/2 = 0.8660254
+    halfsqrt3 = 0.8660254
+    arrow_1_x = x_direction * halfsqrt3 - 1/2 * y_direction
+    arrow_1_y = y_direction * halfsqrt3 + 1/2 * x_direction
+
+    arrow_2_x = x_direction * halfsqrt3 + 1/2 * y_direction
+    arrow_2_y = y_direction * halfsqrt3 - 1/2 * x_direction
+
+    const len = 15
+
+    ctx.lineTo(x1 + len * arrow_1_x, y1 + len * arrow_1_y);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 + len * arrow_2_x, y1 + len * arrow_2_y);
+    
+    ctx.stroke();
+
+
+}
+
+function draw_arrows(tree, ctx){
+    
+    const radius = 5;
+
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    //assume tree.length is even
+    n = tree.length/2
+    x_interval = ctx.canvas.width/(n+1);
+    circle_center = n/2 * x_interval
+    circle_width = (n/2 - 1/2) * x_interval
+    
+    circle_locations = new Array(tree.length + 1);
+    for (i = 0; i < 2 * n; i++){
+        
+        
+        if (i < n){
+            x_coord = x_interval/2 + i * x_interval
+            circle_height = 1/4 * 0.8 * ctx.canvas.height * Math.sqrt(Math.abs(1 - ((x_coord - circle_center)/circle_width)**2))
+            circle_locations[i] = [x_coord, 3/4 * ctx.canvas.height + circle_height]
+        }
+        else{
+            x_coord = x_interval/2 + (2*n - i-1) * x_interval
+            circle_height = 1/4 * 0.8 * ctx.canvas.height * Math.sqrt(Math.abs(1 - ((x_coord - circle_center)/circle_width)**2))
+            circle_locations[i] = [x_coord, 1/4 * ctx.canvas.height - circle_height]
+        }
+    }
+    circle_locations[2*n] = [x_interval/2 + n * x_interval, 1/2 * ctx.canvas.height];
+
+    for (i = 0; i < 2 * n; i++){
+
+
+        draw_filled_circle(circle_locations[i][0], circle_locations[i][1], radius);
+        j = tree[i][0];
+        var line_color = "black";
+        
+        if (tree[i][1] == 1){
+            line_color = 'blue';
+        }
+
+        draw_arrow(circle_locations[j][0], circle_locations[j][1], circle_locations[i][0], circle_locations[i][1], line_color);
+
+    }
+    draw_filled_circle(circle_locations[2*n][0], circle_locations[2*n][1], radius);
+
+
+}
+
+
+//for our purposes n should be odd
+function generate_random_tree(n){
+    
+    tree_array = new Array(n-1);
+
+    leaves = new Array(n);
+    for(i = 0; i < n; i++){
+        leaves[i] = i;
+    }
+
+    num_children = new Array(n).fill(0);
+    prufer_sequence = new Array(n-2);
+    for(i = 0; i < n-2; i++){
+
+        k = Math.floor(Math.random() * n);
+        prufer_sequence[i] = k;
+        num_children[k] += 1;
+    }
+    num_children[n-1] += 1
+
+    leaves = leaves.filter(val => num_children[val] == 0)
+
+    for(i = 0; i < n-2; i++){
+
+        smallest_leaf = Math.min(...leaves);
+        tree_array[smallest_leaf] = [prufer_sequence[i],0];
+        leaves = leaves.filter(val => val != smallest_leaf);
+        num_children[prufer_sequence[i]] -= 1;
+
+        if  (num_children[prufer_sequence[i]] == 0){
+            leaves.push(prufer_sequence[i]);
+        }
+    }
+    tree_array[leaves[0]] = [n-1,0];
+
+    return tree_array;
+
+}
+
+
+function lower_element(k, n){
+
+    if (k < n/2){
+        return k;
+    }
+    else{
+        return n - 1 - k;
+    }
+
+}
+
+//Find loops in the "cluster graph" supported on the lower vertices
+//flip them from 0 to 1 or vice versa
+function small_loop_involution(arrow_list){
+
+    var n = arrow_list.length;
+
+    //first find loops in lower vertices
+    lower_vertices = new Array(arrow_list.length/2).keys().toArray()
+    num_blue_lower_loops = 0;
+    lower_loop_vertices = [];
+    lower_tree_vertices = [];
+    lower_loops = [];
+    
+    while (lower_vertices.length != 0){
+
+        current_vertex = lower_vertices[0];
+        chain_list = [current_vertex];
+        while(true){
+
+            pointed_vertex = arrow_list[current_vertex][0];
+
+            if (pointed_vertex == arrow_list.length){
+
+                lower_tree_vertices.push(...chain_list);
+                lower_vertices = lower_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+            
+            current_vertex = (pointed_vertex < arrow_list.length/2) ? pointed_vertex : (arrow_list.length - pointed_vertex - 1)
+
+            if (lower_loop_vertices.includes(current_vertex) || lower_tree_vertices.includes(current_vertex)){
+
+                lower_tree_vertices.push(...chain_list);
+                lower_vertices = lower_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+
+            if (chain_list.includes(current_vertex)){
+                loop_index = chain_list.indexOf(current_vertex);
+                lower_loop_vertices.push(...chain_list.slice(loop_index));
+
+                lower_loops.push(chain_list.slice(loop_index));
+
+                lower_tree_vertices.push(...chain_list.slice(0,loop_index));
+                lower_vertices = lower_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+            }
+            chain_list.push(current_vertex);
+        }
+        
+    }
+
+    if (lower_loop_vertices.length != 0) {
+        
+        if (arrow_list_state == 'tree'){
+            arrow_list_state = "small_loops";
+        }
+
+        lower_loops.sort((a,b)=>Math.min(...a) - Math.min(...b));
+
+        for(i = 0; i < lower_loops.length; i++){
+
+            loop = lower_loops[i];
+
+            var all_colors_same = true;
+            var first_color = arrow_list[loop[0]][1];
+
+            for (j =0; j < loop.length; j++){
+
+                if (arrow_list[loop[j]][1] != first_color ){
+                    all_colors_same = false;
+                    break;
+                }
+            }
+            if (!all_colors_same){
+                continue;
+            }
+
+            for( j =0; j < loop.length; j++){
+                arrow_list[loop[j]][1] = 1 - arrow_list[loop[j]][1];
+            }
+            return arrow_list;
+
+        }
+
+    }
+
+    //otherwise there are no lower loops so look for upper loops with even parity
+    upper_vertices = new Array(arrow_list.length/2).fill().map((e,i)=>n/2+i);
+    num_blue_upper_loops = 0;
+    upper_loop_vertices = [];
+    upper_tree_vertices = [];
+    upper_loops = [];
+    
+    while (upper_vertices.length != 0){
+
+        current_vertex = upper_vertices[0];
+        chain_list = [current_vertex];
+        while(true){
+
+            pointed_vertex = arrow_list[current_vertex][0];
+
+            if (pointed_vertex == arrow_list.length){
+
+                upper_tree_vertices.push(...chain_list);
+                upper_vertices = upper_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+            
+            current_vertex = (pointed_vertex >= arrow_list.length/2) ? pointed_vertex : (arrow_list.length - pointed_vertex - 1)
+
+            if (upper_loop_vertices.includes(current_vertex) || lower_tree_vertices.includes(current_vertex)){
+
+                upper_tree_vertices.push(...chain_list);
+                upper_vertices = upper_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+
+            if (chain_list.includes(current_vertex)){
+                loop_index = chain_list.indexOf(current_vertex);
+                upper_loop_vertices.push(...chain_list.slice(loop_index));
+                
+                upper_loops.push(chain_list.slice(loop_index));
+
+                upper_tree_vertices.push(...chain_list.slice(0,loop_index));
+                upper_vertices = upper_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+            }
+            chain_list.push(current_vertex);
+        }
+        
+    }
+
+    
+
+    if (upper_loops.length != 0) {
+        
+        if (arrow_list_state == 'tree'){
+            arrow_list_state = "small_loops";
+        }
+        //sort upper loops by minimum vertices
+        upper_loops.sort((a,b)=>Math.min(...a) - Math.min(...b));
+
+        for(i = 0; i < upper_loops.length; i++){
+
+            loop = upper_loops[i];
+            parity = 1;
+            for(j = 0; j < loop.length; j++){
+
+                if (arrow_list[loop[j]][0] < n/2){
+                    parity *= -1;
+                }
+            }
+
+            if (parity == -1){
+                continue;
+            }
+
+            var all_colors_same = true;
+            var first_color = arrow_list[loop[0]][1];
+
+            for( j =0; j < loop.length; j++){
+
+                if (arrow_list[loop[j]][1] != first_color ){
+                    all_colors_same = false;
+                    break;
+                }
+            }
+            if (!all_colors_same){
+                continue;
+            }
+
+            for( j =0; j < loop.length; j++){
+                arrow_list[loop[j]][1] = 1 - arrow_list[loop[j]][1];
+            }
+            return arrow_list;
+
+        }
+
+        return arrow_list;   
+
+    }
+
+    return arrow_list;
+
+
+
+
+}
+
+function big_loop_involution(arrow_list){
+
+    var n = arrow_list.length;
+
+    //first find loops in lower vertices
+    vertices = new Array(n).keys().toArray()
+    loop_vertices = [];
+    tree_vertices = [];
+    loops = [];
+    
+    while (vertices.length != 0){
+
+        current_vertex = vertices[0];
+        chain_list = [current_vertex];
+        while(true){
+
+            pointed_vertex = arrow_list[current_vertex][0];
+
+            if (pointed_vertex == arrow_list.length){
+
+                tree_vertices.push(...chain_list);
+                vertices = vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+            
+            current_vertex = pointed_vertex;
+
+            if (loop_vertices.includes(current_vertex) || tree_vertices.includes(current_vertex)){
+
+                tree_vertices.push(...chain_list);
+                vertices = vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+
+            if (chain_list.includes(current_vertex)){
+                loop_index = chain_list.indexOf(current_vertex);
+                loop_vertices.push(...chain_list.slice(loop_index));
+
+                loops.push(chain_list.slice(loop_index));
+
+                tree_vertices.push(...chain_list.slice(0,loop_index));
+                vertices = vertices.filter(elem => !chain_list.includes(elem))
+                break;
+            }
+            chain_list.push(current_vertex);
+        }
+        
+    }
+
+    if (loop_vertices.length != 0) {
+        
+        if (arrow_list_state == 'tree'){
+            arrow_list_state = "big_loops";
+        }
+
+        loops.sort((a,b)=>Math.min(...a) - Math.min(...b));
+
+        for(i = 0; i < loops.length; i++){
+
+            loop = loops[i];
+
+            var all_colors_same = true;
+            var first_color = arrow_list[loop[0]][1];
+
+            for (j =0; j < loop.length; j++){
+
+                if (arrow_list[loop[j]][1] != first_color ){
+                    all_colors_same = false;
+                    break;
+                }
+            }
+            if (!all_colors_same){
+                continue;
+            }
+
+            for( j =0; j < loop.length; j++){
+                arrow_list[loop[j]][1] = 1 - arrow_list[loop[j]][1];
+            }
+            return arrow_list;
+
+        }
+
+    }
+
+    return arrow_list;
+
+
+}
+
+//Determine the "state" of the arrow list 
+//States: big_loops ()
+//small_loops
+//tree_small_loops
+//tree_small_tree
+//
+function determine_state(arrow_list){
+
+
+
+}
+
+function flip_index(idx, n){
+    if (idx == n){
+        return idx;
+    }
+    else{
+        return n - 1 - idx;
+    }
+}
+
+function flip_arrows(arrow_list, site){
+
+    var n = arrow_list.length;
+    var temp = structuredClone(arrow_list[site]);
+    arrow_list[site][0] = flip_index(arrow_list[n-1-site][0],n);
+    arrow_list[site][1] = arrow_list[n-1-site][1];
+    arrow_list[n-site-1][0] = flip_index(temp[0],n);
+    arrow_list[n-site-1][1] = temp[1];
+    return arrow_list;
+
+}
+
+//transform from "collection of blue loops" in small-tree space into big-tree space and vice versa
+//(Or possibly from small-loop space to small-loop space if there's a collection of loops with odd number of members......)
+function crossing_involution(arrow_list){
+
+    n = arrow_list.length;
+
+    //graph of which blue arrows point to which other nodes. 
+    //black arrows are treated as pointing from the node which they target.       
+    var reverse_arrow_connections = new Array(n).fill().map(()=>[]);
+
+    for(i = 0; i < n; i++){
+
+        if (arrow_list[i][1] == 0){
+
+            reverse_arrow_connections[i].push(i);
+
+        }
+        else{
+            k = arrow_list[i][0];
+            reverse_arrow_connections[k].push(i);
+
+        }
+        
+
+    }
+
+    var cluster_arrow_connections = new Array(n/2);
+    for(i = 0; i < n/2; i++){
+
+        cluster_arrow_connections[i] = (reverse_arrow_connections[i]).concat(reverse_arrow_connections[n-i-1]);
+
+    }
+
+    
+
+    var flip_clusters = [];
+    var flip_cluster_collisions = [];
+    var unmapped_clusters = new Array(n/2).fill().map((e,i)=>i);
+    
+    while (unmapped_clusters.length > 0){
+
+        var starting_cluster = unmapped_clusters[0];
+        var current_cluster = starting_cluster;
+        var flip_cluster = [starting_cluster];
+        
+        
+        //always choose smaller connection(consistency between big loop and little loop)
+        var current_collision = Math.min(...cluster_arrow_connections[current_cluster]);
+        var connecting_collisions = [current_collision];
+
+        while(true){
+            var collision_mirror = n - 1 - current_collision;
+            var next_cluster;
+
+            if (arrow_list[collision_mirror][1] == 0){
+                next_cluster = lower_element(collision_mirror,n);
+            }
+            else{
+                next_cluster = lower_element(arrow_list[collision_mirror][0],n);
+            }
+
+            if (next_cluster == starting_cluster){
+                break;
+            }
+            
+            current_cluster = next_cluster;
+            flip_cluster.push(current_cluster);
+
+            for(k = 0; k < 2; k++){
+                if (lower_element(cluster_arrow_connections[current_cluster][k],n) != lower_element(current_collision,n)){
+                    current_collision = cluster_arrow_connections[current_cluster][k];
+                    connecting_collisions.push(current_collision);
+                    break;
+                } 
+            }
+        }
+
+        unmapped_clusters = unmapped_clusters.filter(elem=>!flip_cluster.includes(elem));
+        flip_clusters.push(flip_cluster);
+        flip_cluster_collisions.push(connecting_collisions);
+
+    }
+
+
+
+    if (arrow_list_state == "small_loops"){
+        //Check if any odd loops and flip if so
+        var is_odd_loop = false;
+
+        for(i = 0; i < flip_clusters.length; i++){
+
+            var num_double_arrows = 0;
+            
+            for(k = 0; k < flip_clusters[i].length; k++){
+                
+                node = flip_clusters[i][k];
+
+                if (reverse_arrow_connections[node].length == 0 || reverse_arrow_connections[node].length == 2){
+                    num_double_arrows += 1;
+                } 
+
+
+            }
+
+            //flip the 'smallest' such odd loop and exit
+            if (num_double_arrows%2 == 1){
+
+                for(j = 0; j < flip_cluster_collisions[i].length; j++){
+                    //flip the arrows at site 
+                    site = lower_element(flip_cluster_collisions[i][j],n);
+                    arrow_list = flip_arrows(arrow_list, site);
+
+                }
+
+                return arrow_list;
+            }
+        }
+
+        //Now convert even loops to big loops
+        //...
+        for(i = 0; i < flip_clusters.length; i++){
+
+            var flipping_edges = false;
+
+            for(k = 0; k < flip_clusters[i].length; k++){
+                
+                node = flip_clusters[i][k];
+
+                if (reverse_arrow_connections[node].length == 0 || reverse_arrow_connections[node].length == 2){
+                    flipping_edges = !flipping_edges;
+                } 
+
+                if (flipping_edges){
+                    site = lower_element(flip_cluster_collisions[i][k], n);
+                    arrow_list = flip_arrows(arrow_list, site);
+                }
+
+
+            }
+            //sweep through the elements of the cluster. flip all edges between adjacent elements with 2 edges from same node
+        }
+
+        arrow_list_state = "big_loops";
+
+        return arrow_list;
+    }
+    
+    else if (arrow_list_state == "big_loops"){
+
+        //big loops can always be converted to small loops
+        //go through each flip cluster and flip edges between nodes 
+        //with zero arrows pointing down and nodes with two
+
+        for(i = 0; i < flip_clusters.length; i++){
+
+            var flipping_edges = false;
+            for(k = 0; k < flip_clusters[i].length; k++){
+
+                q = flip_clusters[i][k];
+                node_1_pointing_down = (reverse_arrow_connections[q] < n/2);
+                node_2_pointing_down = (reverse_arrow_connections[n-1-q] < n/2);
+
+
+                if (node_1_pointing_down == node_2_pointing_down){
+                    flipping_edges = !flipping_edges;
+                }
+
+                if (flipping_edges){
+                    site = lower_element(flip_cluster_collisions[i][k], n);
+                    arrow_list = flip_arrows(arrow_list, site);
+                }
+                
+                
+            }
+
+        }
+
+
+        arrow_list_state = "small_loops";
+        return arrow_list;
+
+    } 
+
+    else{
+        return arrow_list;
+    }
+    
+
+}
+
+function generate_new_tree(){
+
+    
+    vertices = Number(document.getElementById("num_vertices").value)
+    arrow_list = generate_random_tree(vertices);
+    draw_arrows(arrow_list, ctx);
+    
+    
+}
+
+function apply_small_loop_involution(){
+
+    arrow_list = small_loop_involution(arrow_list);
+    draw_arrows(arrow_list, ctx);
+    //crossing_involution(arrow_list);
+
+}
+
+function apply_big_loop_involution(){
+
+    arrow_list = big_loop_involution(arrow_list);
+    draw_arrows(arrow_list, ctx);
+
+}
+
+function apply_crossing_involution(){
+
+    arrow_list = crossing_involution(arrow_list);
+    draw_arrows(arrow_list, ctx);
+
+}
+
+ctx.canvas.width = 1000;
+ctx.canvas.height = 600;
+var arrow_list;
+var arrow_list_state = 'tree';
+
+generate_new_tree();
+
+</script>
+
+</body>
+</html>
