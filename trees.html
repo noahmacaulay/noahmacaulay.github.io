@@ -8,6 +8,12 @@
         display: flex;
 
     }
+    #canvas_and_save{
+
+        display:flex;
+        gap:15px;
+
+    }
     div{
         flex: 1
     }
@@ -19,7 +25,9 @@
 <body>
 <h1>Tree Factoring Bijection</h1>
 
-<div id="canvas_div" style="width:900px">
+<div id="canvas_and_save">
+
+<div id="canvas_div" style="width:900px; margin:10 auto">
 
 <div id="canvas_top">
     <canvas id="myCanvas" width= "900" height = "540" style="border:1px solid #000000;">
@@ -80,6 +88,15 @@
 
     </div>
 
+
+</div>
+
+</div>
+
+<div id = "save_div" style="margin:50 auto">
+
+<textarea id="sequence_box" rows="8" cols="45"></textarea> <br>
+<button id="save" onclick="save_sequence()">Save</button> <button id="load" onclick="load_sequence()">Load</button>
 
 </div>
 
@@ -255,6 +272,48 @@ function generate_random_tree(n){
 
 }
 
+
+function save_sequence(){
+    sequence = "";
+    for(i = 0; i < arrow_list.length; i++){
+        sequence += arrow_list[i][0];
+        if (arrow_list[i][1] == 1){
+            sequence += 'b';
+        }
+        sequence+="_";
+    }
+    document.getElementById("sequence_box").value = sequence;
+
+}
+
+function load_sequence(){
+
+    var sequence = document.getElementById("sequence_box").value
+
+    var num_array = sequence.split("_");
+    if (num_array[num_array.length-1] == ""){
+        num_array = num_array.slice(0,-1);
+    }
+    n = num_array.length;
+    var provisional_array = new Array(n);
+    for (i = 0; i < n; i++){
+        var num;
+        if (num_array[i][num_array[i].length-1] == 'b'){
+            num = num_array[i].slice(0,-1);
+            provisional_array[i] = [parseInt(num), 1];
+        }
+        else{
+            num = num_array[i];
+            provisional_array[i] = [parseInt(num), 0];
+        }
+    }
+
+    arrow_list = provisional_array;
+
+    draw_arrows(arrow_list, ctx);
+    paused = true;
+    update_last_action("");
+}
 
 function lower_element(k, n){
 
@@ -1017,6 +1076,7 @@ function generate_new_tree(){
     update_last_action("");
 
     draw_arrows(arrow_list, ctx);
+    save_sequence();
     
     
 }
