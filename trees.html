@@ -1,23 +1,89 @@
 <!DOCTYPE html>
 <html>
+<head>
+
+<style>
+
+    #asdasd{
+        display: flex;
+
+    }
+    div{
+        flex: 1
+    }
+
+</style>
+
+</head>
+
 <body>
 <h1>Tree Factoring Bijection</h1>
 
-<canvas id="myCanvas" style="border:1px solid #000000;">
-Sorry, your browser does not support canvas.
-</canvas>
+<div id="canvas_div" style="width:900px">
 
-<br>
-<button onclick ="generate_new_tree()">Generate New Tree</button>
-Vertices(odd only): <input id ="num_vertices"  value=11 size = 2>
+<div id="canvas_top">
+    <canvas id="myCanvas" width= "900" height = "540" style="border:1px solid #000000;">
+    Sorry, your browser does not support canvas.
+    </canvas>
+</div>
 
-<br>
-<button onclick="apply_small_loop_involution()">Small Loop Involution</button>
-&nbsp;&nbsp;&nbsp;
-<button onclick="apply_big_loop_involution()">Big Loop Involution</button>
+<div id = "asdasd" >    
 
-<br>
-<button onclick="apply_crossing_involution()">Crossing Involution</button>
+    <div id="generate_panel" >
+
+        <button onclick ="generate_new_tree()">Generate New Tree</button>
+        <br>
+        Vertices(odd): <input id ="num_vertices"  value=11 size =1>
+        <button onclick="restore_original_state()">Restore Original Tree</button>
+    </div>
+
+    <div id="play_pause">
+        <button onclick="play()">Play</button>
+        <br>
+        <button onclick="pause()">Pause</button>
+        <br>
+        <button onclick="reverse()">Reverse</button>
+        <br>
+        Delay(ms)<input id="time_delay" value = 600 size=1>
+    </div>
+
+    <div id = "next_action">
+        <button onclick="next_action_pressed()">Next Action</button>
+        <br>
+        <button onclick="previous_action()">Previous Action</button>
+
+
+    </div>
+
+    <div id="involution_panel" >
+        <button onclick="apply_small_loop_involution()">Small Loop Involution</button>
+        <br>
+        <button onclick="apply_crossing_involution()">Crossing Involution</button>
+
+        <br>
+        <button onclick="apply_big_loop_involution()">Big Loop Involution</button>
+
+    </div>
+    <div id="arrow_state">
+        Current status: <span id="arrow_status"></span>
+        <br>
+        Last action: <span id="last_action"></span>
+    </div>
+    <div id="view">
+        View <br>
+        <input type = "radio" id="full" name="view" value="full" onclick="draw_arrows(arrow_list, ctx)"> 
+        <label for="full">Full</label> <br>
+        <input type = "radio" id="upper" name="view" value="upper" onclick="draw_arrows(arrow_list, ctx)"> 
+        <label for="upper">Upper</label> <br>
+        <input type = "radio" id="lower" name="view" value="lower" onclick="draw_arrows(arrow_list, ctx)"> 
+        <label for="lower">Lower</label> <br>
+
+    </div>
+
+
+</div>
+
+</div>
 
 <script>
 // Create a canvas
@@ -83,6 +149,21 @@ function draw_arrow(x0, y0, x1, y1, color1 = "black", color2 = null){
 
 function draw_arrows(tree, ctx){
     
+    var drawing_mode;
+
+    if (document.getElementById("full").checked){
+        drawing_mode = "full";
+    }
+    else if (document.getElementById("upper").checked){
+        drawing_mode = "upper";
+    }
+    else if (document.getElementById("lower").checked){
+        drawing_mode = "lower";
+    }
+    else{
+        drawing_mode = "full";
+    }
+
     const radius = 5;
 
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
@@ -113,13 +194,20 @@ function draw_arrows(tree, ctx){
 
 
         draw_filled_circle(circle_locations[i][0], circle_locations[i][1], radius);
+        if (i < n && drawing_mode=="upper"){
+            continue;
+        }
+        else if (i >= n && drawing_mode=="lower"){
+            continue;
+        }
+        
         j = tree[i][0];
         var line_color = "black";
         
         if (tree[i][1] == 1){
             line_color = 'blue';
         }
-
+        
         draw_arrow(circle_locations[j][0], circle_locations[j][1], circle_locations[i][0], circle_locations[i][1], line_color);
 
     }
@@ -127,7 +215,6 @@ function draw_arrows(tree, ctx){
 
 
 }
-
 
 //for our purposes n should be odd
 function generate_random_tree(n){
@@ -236,10 +323,6 @@ function small_loop_involution(arrow_list){
 
     if (lower_loop_vertices.length != 0) {
         
-        if (arrow_list_state == 'tree'){
-            arrow_list_state = "small_loops";
-        }
-
         lower_loops.sort((a,b)=>Math.min(...a) - Math.min(...b));
 
         for(i = 0; i < lower_loops.length; i++){
@@ -321,9 +404,6 @@ function small_loop_involution(arrow_list){
 
     if (upper_loops.length != 0) {
         
-        if (arrow_list_state == 'tree'){
-            arrow_list_state = "small_loops";
-        }
         //sort upper loops by minimum vertices
         upper_loops.sort((a,b)=>Math.min(...a) - Math.min(...b));
 
@@ -373,6 +453,7 @@ function small_loop_involution(arrow_list){
 
 
 }
+
 
 function big_loop_involution(arrow_list){
 
@@ -427,10 +508,6 @@ function big_loop_involution(arrow_list){
 
     if (loop_vertices.length != 0) {
         
-        if (arrow_list_state == 'tree'){
-            arrow_list_state = "big_loops";
-        }
-
         loops.sort((a,b)=>Math.min(...a) - Math.min(...b));
 
         for(i = 0; i < loops.length; i++){
@@ -466,14 +543,251 @@ function big_loop_involution(arrow_list){
 }
 
 //Determine the "state" of the arrow list 
-//States: big_loops ()
+//States: big_loops
 //small_loops
 //tree_small_loops
 //tree_small_tree
 //
 function determine_state(arrow_list){
 
+    n = arrow_list.length;
+    //First partition 
+    lower_vertices = new Array(arrow_list.length/2).keys().toArray()
+    lower_loop_vertices = [];
+    lower_tree_vertices = [];
+    lower_loops = [];
+    
+    while (lower_vertices.length != 0){
 
+        current_vertex = lower_vertices[0];
+        chain_list = [current_vertex];
+        while(true){
+
+            pointed_vertex = arrow_list[current_vertex][0];
+
+            if (pointed_vertex == arrow_list.length){
+
+                lower_tree_vertices.push(...chain_list);
+                lower_vertices = lower_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+            
+            current_vertex = (pointed_vertex < arrow_list.length/2) ? pointed_vertex : (arrow_list.length - pointed_vertex - 1)
+
+            if (lower_loop_vertices.includes(current_vertex) || lower_tree_vertices.includes(current_vertex)){
+
+                lower_tree_vertices.push(...chain_list);
+                lower_vertices = lower_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+
+            if (chain_list.includes(current_vertex)){
+                loop_index = chain_list.indexOf(current_vertex);
+                lower_loop_vertices.push(...chain_list.slice(loop_index));
+
+                lower_loops.push(chain_list.slice(loop_index));
+
+                lower_tree_vertices.push(...chain_list.slice(0,loop_index));
+                lower_vertices = lower_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+            }
+            chain_list.push(current_vertex);
+        }
+        
+    }
+
+    upper_vertices = new Array(arrow_list.length/2).fill().map((e,i)=>n/2+i);
+    upper_loop_vertices = [];
+    upper_tree_vertices = [];
+    upper_loops = [];
+    
+    while (upper_vertices.length != 0){
+
+        current_vertex = upper_vertices[0];
+        chain_list = [current_vertex];
+        while(true){
+
+            pointed_vertex = arrow_list[current_vertex][0];
+
+            if (pointed_vertex == arrow_list.length){
+
+                upper_tree_vertices.push(...chain_list);
+                upper_vertices = upper_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+            
+            current_vertex = (pointed_vertex >= arrow_list.length/2) ? pointed_vertex : (arrow_list.length - pointed_vertex - 1)
+
+            if (upper_loop_vertices.includes(current_vertex) || lower_tree_vertices.includes(current_vertex)){
+
+                upper_tree_vertices.push(...chain_list);
+                upper_vertices = upper_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+
+            if (chain_list.includes(current_vertex)){
+                loop_index = chain_list.indexOf(current_vertex);
+                upper_loop_vertices.push(...chain_list.slice(loop_index));
+                
+                upper_loops.push(chain_list.slice(loop_index));
+
+                upper_tree_vertices.push(...chain_list.slice(0,loop_index));
+                upper_vertices = upper_vertices.filter(elem => !chain_list.includes(elem))
+                break;
+            }
+            chain_list.push(current_vertex);
+        }
+        
+    }
+
+    //first find loops in lower vertices
+    vertices = new Array(n).keys().toArray()
+    loop_vertices = [];
+    tree_vertices = [];
+    loops = [];
+    
+    while (vertices.length != 0){
+
+        current_vertex = vertices[0];
+        chain_list = [current_vertex];
+        while(true){
+
+            pointed_vertex = arrow_list[current_vertex][0];
+
+            if (pointed_vertex == arrow_list.length){
+
+                tree_vertices.push(...chain_list);
+                vertices = vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+            
+            current_vertex = pointed_vertex;
+
+            if (loop_vertices.includes(current_vertex) || tree_vertices.includes(current_vertex)){
+
+                tree_vertices.push(...chain_list);
+                vertices = vertices.filter(elem => !chain_list.includes(elem))
+                break;
+
+            }
+
+            if (chain_list.includes(current_vertex)){
+                loop_index = chain_list.indexOf(current_vertex);
+                loop_vertices.push(...chain_list.slice(loop_index));
+
+                loops.push(chain_list.slice(loop_index));
+
+                tree_vertices.push(...chain_list.slice(0,loop_index));
+                vertices = vertices.filter(elem => !chain_list.includes(elem))
+                break;
+            }
+            chain_list.push(current_vertex);
+        }
+        
+    }
+
+
+    //Now that the loop etc. decomposition has been determined w.r.t. 
+    var big_trees_black = tree_vertices.every((i)=>arrow_list[i][1] == 0);
+    var lower_trees_black = lower_tree_vertices.every((i)=>arrow_list[i][1] == 0);
+    var upper_trees_black = upper_tree_vertices.every((i)=>arrow_list[i][1] == 0);
+
+    var big_cycles_same_color = true;
+    for(i = 0; i < loops.length; i++){
+        var first_color = arrow_list[loops[i][0]][1];
+        for(j = 0; j < loops[i].length; j++){
+
+            if (arrow_list[loops[i][j]][1] != first_color){
+                big_cycles_same_color = false;
+            }
+        }
+
+    }
+
+    var upper_cycles_same_color = true;
+    for(i = 0; i < upper_loops.length; i++){
+        var first_color = arrow_list[upper_loops[i][0]][1];
+        for(j = 0; j < upper_loops[i].length; j++){
+
+            if (arrow_list[upper_loops[i][j]][1] != first_color){
+                upper_cycles_same_color = false;
+            }
+        }
+
+    }
+
+    var lower_cycles_same_color = true;
+    for(i = 0; i < lower_loops.length; i++){
+        var first_color = arrow_list[lower_loops[i][0]][1];
+        for(j = 0; j < lower_loops[i].length; j++){
+
+            if (arrow_list[lower_loops[i][j]][1] != first_color){
+                lower_cycles_same_color = false;
+            }
+        }
+
+    }
+
+    var big_blue_cycles = big_trees_black && big_cycles_same_color;
+    var upper_blue_cycles = upper_trees_black && upper_cycles_same_color;
+    var lower_blue_cycles = lower_trees_black && lower_cycles_same_color;
+
+
+
+    var small_blue_cycles = lower_blue_cycles && upper_blue_cycles;
+
+    var big_tree = loop_vertices.length == 0;
+    var lower_tree = lower_loop_vertices.length == 0;
+    var upper_odd_cycles = true;
+    for( i = 0; i < upper_loops.length; i++){
+        parity = 1;
+        for(j = 0; j < upper_loops[i].length; j++){
+
+            if (arrow_list[upper_loops[i][j]][0] < n/2){
+                parity *= -1;
+            }
+
+        }
+        if (parity == 1){
+            upper_odd_cycles = false;
+        }
+
+    }
+    var small_tree = lower_tree && upper_odd_cycles;
+
+    var status;
+    if (big_blue_cycles && !small_blue_cycles){
+        status =  "big_loops";
+    }
+    else if (big_blue_cycles && small_blue_cycles && big_tree & small_tree){
+        status = "tree_small_tree";
+    }
+    else if (big_blue_cycles && small_blue_cycles && big_tree && !small_tree){
+        status = "tree_small_loops";
+    }
+    else if (big_blue_cycles && small_blue_cycles && !big_tree && small_tree){
+        status = "loops_small_tree";
+    }
+    else if (!big_blue_cycles && small_blue_cycles && small_tree){
+        status = "blue_small_tree";
+    }
+    else if (!big_blue_cycles && small_blue_cycles && !small_tree){
+        status = "small_loops";
+    }
+    else if (big_blue_cycles && small_blue_cycles && !big_tree && !small_tree){
+        status = "big_small_loops";
+    }
+    else{
+        status = "error";
+    }
+
+    document.getElementById("arrow_status").textContent=status;
+    return status;
 
 }
 
@@ -543,9 +857,18 @@ function crossing_involution(arrow_list){
         var current_cluster = starting_cluster;
         var flip_cluster = [starting_cluster];
         
-        
-        //always choose smaller connection(consistency between big loop and little loop)
-        var current_collision = Math.min(...cluster_arrow_connections[current_cluster]);
+        var current_collision;
+        //choose smaller(cluster!!!) connection to start chain
+        if (lower_element(cluster_arrow_connections[current_cluster][0],n) < lower_element(cluster_arrow_connections[current_cluster][1],n)){
+            current_collision = cluster_arrow_connections[current_cluster][0];
+        }
+        else if (lower_element(cluster_arrow_connections[current_cluster][0],n) > lower_element(cluster_arrow_connections[current_cluster][1],n)){
+            current_collision = cluster_arrow_connections[current_cluster][1];
+        }
+        else{
+            current_collision = Math.min(...cluster_arrow_connections[current_cluster]);
+        }
+
         var connecting_collisions = [current_collision];
 
         while(true){
@@ -583,7 +906,7 @@ function crossing_involution(arrow_list){
 
 
 
-    if (arrow_list_state == "small_loops"){
+    if (arrow_list_state == "small_loops" || arrow_list_state=="blue_small_tree"){
         //Check if any odd loops and flip if so
         var is_odd_loop = false;
 
@@ -640,8 +963,6 @@ function crossing_involution(arrow_list){
             //sweep through the elements of the cluster. flip all edges between adjacent elements with 2 edges from same node
         }
 
-        arrow_list_state = "big_loops";
-
         return arrow_list;
     }
     
@@ -675,8 +996,6 @@ function crossing_involution(arrow_list){
 
         }
 
-
-        arrow_list_state = "small_loops";
         return arrow_list;
 
     } 
@@ -693,15 +1012,108 @@ function generate_new_tree(){
     
     vertices = Number(document.getElementById("num_vertices").value)
     arrow_list = generate_random_tree(vertices);
+    arrow_list_state = determine_state(arrow_list);
+    original_state = structuredClone(arrow_list);
+    update_last_action("");
+
     draw_arrows(arrow_list, ctx);
     
     
+}
+
+function restore_original_state(){
+
+    paused = true;
+    arrow_list = structuredClone(original_state);
+    arrow_list_state = determine_state(arrow_list);
+    update_last_action("");
+
+    draw_arrows(arrow_list, ctx);
+
+
+}
+
+function update_last_action(action){
+
+    last_action = action;
+    document.getElementById("last_action").textContent=action;
+
+}
+
+function next_action_pressed(){
+    if (arrow_list_state == "tree_small_loops"){
+        last_action = "";
+    }
+    next_action();
+}
+
+function next_action(reverse=false){
+
+    var action_list;
+
+    if (arrow_list_state == "tree_small_tree"){
+        action_list = [];
+    }
+    else if (arrow_list_state == "big_loops"){
+        action_list = ["crossing_involution", "big_loop_involution"]
+    }
+    else if (arrow_list_state == "tree_small_loops"){
+        action_list = ["small_loop_involution"];
+    }
+    else if (arrow_list_state == "loops_small_tree"){
+        action_list = ["big_loop_involution"];
+    }
+    else if (arrow_list_state == "blue_small_tree"){
+        action_list = ["crossing_involution"];
+    }
+    else if (arrow_list_state == "small_loops"){
+        action_list = ["small_loop_involution", "crossing_involution"];
+    }
+    else if (arrow_list_state == "big_small_loops"){
+        action_list = ["big_loop_involution", "small_loop_involution"];
+    }
+    else{
+        action_list = [];
+    }
+
+    if (reverse){
+        action_list = action_list.filter((e)=>e==last_action);
+    }
+    else{
+        action_list = action_list.filter((e)=>e!=last_action);
+    }
+
+    if (action_list.length > 0){
+        //there should be only 1 action at any given time?
+        if (action_list[0] == "small_loop_involution"){
+            apply_small_loop_involution();
+        }
+        else if (action_list[0] == "big_loop_involution"){
+            apply_big_loop_involution();
+        }
+        else if (action_list[0] == "crossing_involution"){
+            apply_crossing_involution();
+        }
+        return true;
+    }   
+
+    return false;
+
+}
+
+function previous_action(){
+    
+    next_action(true);
+
 }
 
 function apply_small_loop_involution(){
 
     arrow_list = small_loop_involution(arrow_list);
     draw_arrows(arrow_list, ctx);
+    arrow_list_state = determine_state(arrow_list);
+    update_last_action("small_loop_involution");
+
     //crossing_involution(arrow_list);
 
 }
@@ -710,6 +1122,8 @@ function apply_big_loop_involution(){
 
     arrow_list = big_loop_involution(arrow_list);
     draw_arrows(arrow_list, ctx);
+    arrow_list_state = determine_state(arrow_list);
+    update_last_action("big_loop_involution");
 
 }
 
@@ -717,14 +1131,53 @@ function apply_crossing_involution(){
 
     arrow_list = crossing_involution(arrow_list);
     draw_arrows(arrow_list, ctx);
+    arrow_list_state = determine_state(arrow_list);
+    update_last_action("crossing_involution");
 
 }
 
-ctx.canvas.width = 1000;
-ctx.canvas.height = 600;
-var arrow_list;
-var arrow_list_state = 'tree';
+function forward_action_callback(reverse = false){
 
+    if (paused){
+        paused = false;
+        return;
+    }
+
+    var action_succesful = next_action(reverse);
+    if (action_succesful){
+        setTimeout(forward_action_callback, time_delay);
+    }
+
+}
+
+function play(){
+    if (arrow_list_state == "tree_small_loops"){
+        last_action = "";
+    }
+
+    paused = false;
+    time_delay = document.getElementById("time_delay").value;
+    forward_action_callback();
+}
+
+function reverse(){
+
+    paused = false;
+    time_delay = document.getElementById("time_delay").value;
+    forward_action_callback(true);  
+
+}
+
+function pause(){
+    paused = true;
+}
+
+var arrow_list;
+var original_list;
+var arrow_list_state = 'tree';
+var last_action = "";
+var paused = false;
+var time_delay = document.getElementById("time_delay").value;
 generate_new_tree();
 
 </script>
