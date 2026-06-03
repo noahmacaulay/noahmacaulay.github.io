@@ -39,7 +39,7 @@ Now in theory you could use the understanding of the groups to go back and try t
 
 * Some [old](ghost.html) [fiction](pretending.html) from high school and undergrad.
 
-* [Cool](H1.PNG) [pictures](H2.png) of [balls](H3.png) in the Heisenberg group.
+* [Cool](H1.PNG) [pictures](H2.PNG) of [balls](H3.PNG) in the Heisenberg group.
 
 
 # Contact
