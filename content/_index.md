@@ -2,9 +2,10 @@
 title = "Noah's Website"
 +++
 
-![Picture of me at a race](racepic.png)
+![Picture of me at a race](racepic.jpeg)
 
 Hi, I'm Noah MacAulay, welcome to my website. I'm a computer science doctoral student at [Dalhousie University](https://www.dal.ca/). My main area of research is the theory of deep learning, but I'm also interested in algebraic and scientific computing, as well as mathematics. This site contains various projects I've worked on.
+
 
 
 ## The Kolakoski Sequence
