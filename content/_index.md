@@ -24,7 +24,7 @@ Unfortunately, in full generality, the automata seem no easier to understand tha
 
 ![Kolakoski Group Image](tree.png)
 
-Now in theory you could use the understanding of the groups to go back and try to understand the sequence of numbers, but I didn't get around to that part. I've written a small [document](/how-to-prove.pdf) outlining some strategies I thought of. If anyone reading this is interested in trying to do this, feel free to contact me.
+Now in theory you could use the understanding of the groups to go back and try to understand the sequence of numbers, but I didn't get around to that part. I've written a small [document](how-to-prove.pdf) outlining some strategies I thought of. If anyone reading this is interested in trying to do this, feel free to contact me.
 
 ## Miscellanaeous
 
